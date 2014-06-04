@@ -1,5 +1,6 @@
-(Case = function (predicate, action) {
+(Case = function (predicate, action, cont) {
     this.predicate = predicate;
+    this.cont = cont;
     this.action = action;
 }).prototype = (function () {
     var doesmatch = function (value) {
@@ -21,7 +22,10 @@
             decision = actions[index];
             if (decision instanceof Case) {
                 result = decision.evaluate(object);
-                if (result.match) break;
+                if (result.match) {
+                    object = result.result;
+                    if (!decision.cont) break;
+                }
             } else throw ('Array of Case expected');
         }
 
@@ -55,7 +59,7 @@
     };
 })();
 
-(descitionTree = function () {}).prototype = (function () {
+(dtree = function () { }).prototype = (function () {
 
     var buildPredicate = function (object) {
         return new Function(object.arguments, 'return ' + object.condition);
@@ -65,8 +69,8 @@
         var result;
 
         if (action.arguments) result = new Function(action.arguments, 'return ' + action.func);
-        else result = new Function('x', 'return ' + action.func + '(x)');
 
+        else result = new Function('x', 'return ' + action.func + '(x)');
         return result;
     };
 
@@ -76,7 +80,11 @@
             action = resolve(action);
         }
 
-        return new Case(model.func ? buildPredicate(model.func) : true, action);
+        else if (action && action.cases) {
+            action = (new dtree).build(action);
+        }
+
+        return new Case(model.func ? buildPredicate(model.func) : true, action, model.cont);
     };
 
     var buildModel = function (model) {
@@ -101,4 +109,3 @@
         }
     };
 })();
-
